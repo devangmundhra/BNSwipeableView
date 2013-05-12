@@ -2,7 +2,7 @@ Pod::Spec.new do |s|
   s.name         = "BNSwipeableView"
   s.version      = "0.0.1"
   s.platform     =  :ios
-  s.summary      = "Allows you to swipe a UIView and reveal a back view"
+  s.summary      = "Allows you to swipe a UIView and reveal a back view."
   s.homepage     = "https://github.com/devangmundhra/BNSwipeableView"
   s.author       = { "Devang Mundhra" => "devangmundhra@gmail.com" }
   s.source       = { :git => "https://github.com/devangmundhra/BNSwipeableView.git", :tag => "0.0.1" }
