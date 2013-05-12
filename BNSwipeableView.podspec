@@ -1,17 +1,14 @@
-BNSwipeableView
-===============
-
-Inspired from (and broiler plate code taken from)- `thermogl / TISwipeableTableView`
-
-This is a class to make a view into a swipeable view.
-Can be placed in a nib file or programmatically in a view controller.
-
-Just add subviews to swipeableview.frontView and swipeableView.backView, and then you can add swipe the views to reveal front views or back views.
-
-Licence-
-```
-The MIT License (MIT)
-
+Pod::Spec.new do |s|
+  s.name         = "BNSwipeableView"
+  s.version      = "0.0.1"
+  s.platform     =  :ios
+  s.summary      = "Allows you to swipe a UIView and reveal a back view"
+  s.homepage     = "https://github.com/devangmundhra/BNSwipeableView"
+  s.author       = { "Devang Mundhra" => "devangmundhra@gmail.com" }
+  s.source       = { :git => "https://github.com/devangmundhra/BNSwipeableView.git", :tag => "0.0.1" }
+  s.license  	 = {
+  	:type => 'MIT',
+  	:text => <<-LICENSE
 Copyright (c) 2013 Devang Mundhra
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -31,4 +28,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
-```
+  	LICENSE
+  }
+
+  s.source_files =  '*.{h,m}'
+  s.requires_arc     =  true
+end
