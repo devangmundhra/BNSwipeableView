@@ -44,6 +44,11 @@
 
 @end
 
+@interface BNSwipeableView()
+@property (nonatomic) CGFloat startingXPositionAtSwipe;
+
+@end
+
 @interface BNSwipeableView (Private)
 - (void)initialSetup;
 - (void)resetViews:(BOOL)animated;
@@ -53,8 +58,8 @@
 @synthesize backView;
 @synthesize frontView;
 @synthesize frontViewMoving;
-@synthesize shouldBounce;
 @synthesize delegate;
+@synthesize startingXPositionAtSwipe;
 
 - (id)initWithFrame:(CGRect)frame
 {
@@ -85,26 +90,21 @@
 	[frontView setOpaque:YES];
 	[frontView setBackgroundColor:[UIColor clearColor]];
 	
-    UISwipeGestureRecognizer * frontSwipeRecognizerLeft = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(frontViewWasSwiped:)];
-	[frontSwipeRecognizerLeft setDirection:UISwipeGestureRecognizerDirectionLeft];
-	[frontView addGestureRecognizer:frontSwipeRecognizerLeft];
+    UIPanGestureRecognizer *frontPanRecognizer = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(_handleFrontViewPan:)];
+    frontPanRecognizer.delegate = self;
+    [frontView addGestureRecognizer:frontPanRecognizer];
 	
 	backView = [[BNSwipeableViewBackView alloc] initWithFrame:newBounds];
 	[backView setOpaque:YES];
 	[backView setClipsToBounds:YES];
 	[backView setHidden:YES];
 	[backView setBackgroundColor:[UIColor redColor]];
-    
-	UISwipeGestureRecognizer * backSwipeRecognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(backViewWasSwiped:)];
-    // The direction of backview swipe depends on how it was revealed
-	[backSwipeRecognizer setDirection:UISwipeGestureRecognizerDirectionRight];
-	[backView addGestureRecognizer:backSwipeRecognizer];
 	
 	[self addSubview:backView];
 	[self addSubview:frontView];
-	
+    
 	frontViewMoving = NO;
-	shouldBounce = YES;
+    startingXPositionAtSwipe = 0.0f;
 }
 
 - (void)prepareForReuse {
@@ -131,62 +131,37 @@
 //===============================//
 
 #pragma mark - Back View Show / Hide
-
-- (void)frontViewWasSwiped:(UISwipeGestureRecognizer *)recognizer
+#define FRONTVIEW_HIDDEN_PORTION_ON_COMPLETION 0.92
+- (void) toggleBackViewDisplay:(BOOL)animated
 {
-    if ([delegate respondsToSelector:@selector(shouldSwipe)])
-    {
-        if ([delegate shouldSwipe])
-            [self revealBackViewAnimated:YES inDirection:recognizer.direction];
+    if (backView.hidden) {
+        [self revealBackViewAnimated:animated];
+    } else {
+        [self hideBackViewAnimated:animated];
     }
-    if ([delegate respondsToSelector:@selector(didSwipe)])
-        [delegate didSwipe];
 }
 
-- (void)backViewWasSwiped:(UISwipeGestureRecognizer *)recognizer
-{
-    [self hideBackViewAnimated:YES inDirection:recognizer.direction];
-}
-
-#define FRONTVIEW_SCALE_FACTOR 0.000000000000001
-- (void)revealBackViewAnimated:(BOOL)animated inDirection:(UISwipeGestureRecognizerDirection)direction
+- (void)revealBackViewAnimated:(BOOL)animated
 {
 	if (!frontViewMoving && backView.hidden) {
-		
-		frontViewMoving = YES;
-		[backView.layer setHidden:NO];
-		[backView setNeedsDisplay];
-		
-        if ([delegate respondsToSelector:@selector(backViewWillAppear:)])
-            [delegate backViewWillAppear:animated];
+        [self _prepareToRevealBackView:animated];
 		        
 		if (animated) {
-            [UIView beginAnimations:nil context:nil];
-            [UIView setAnimationDuration:0.2];
-            
-            if (direction == UISwipeGestureRecognizerDirectionRight) {
-                CGAffineTransform scale = CGAffineTransformMakeScale(FRONTVIEW_SCALE_FACTOR, 1);
-                [frontView setTransform:CGAffineTransformTranslate(scale, self.frame.size.width/2/FRONTVIEW_SCALE_FACTOR, 0)];
-            } else {
-                CGAffineTransform scale = CGAffineTransformMakeScale(FRONTVIEW_SCALE_FACTOR, 1);
-                [frontView setTransform:CGAffineTransformTranslate(scale, -self.frame.size.width/2/FRONTVIEW_SCALE_FACTOR, 0)];
-            }
-            [UIView setAnimationDelegate:self];
-            [UIView setAnimationCurve:UIViewAnimationCurveEaseOut];
-            [UIView setAnimationDidStopSelector:@selector(animationDidStopAddingBackView:finished:context:)];
-            [UIView commitAnimations];
+            [self _completeFrontViewPan];
 		}
-		else
-		{
+		else {
+            frontView.frame = CGRectOffset(frontView.bounds, -CGRectGetWidth(frontView.bounds)*FRONTVIEW_HIDDEN_PORTION_ON_COMPLETION, 0);
+            
+			frontViewMoving = NO;
+            startingXPositionAtSwipe = 0;
+            
             if ([delegate respondsToSelector:@selector(backViewDidAppear:)])
                 [delegate backViewDidAppear:animated];
-			
-			frontViewMoving = NO;
 		}
 	}
 }
 
-- (void)hideBackViewAnimated:(BOOL)animated inDirection:(UISwipeGestureRecognizerDirection)direction
+- (void)hideBackViewAnimated:(BOOL)animated
 {
 	
 	if (!frontViewMoving && !backView.hidden){
@@ -197,12 +172,7 @@
             [delegate backViewWillDisappear:animated];
 		
 		if (animated) {
-            [UIView beginAnimations:nil context:(void *)([NSNumber numberWithInt:direction])];
-            [UIView setAnimationDuration:0.2];
-            [frontView setTransform:CGAffineTransformIdentity];
-            [UIView setAnimationDelegate:self];
-            [UIView setAnimationDidStopSelector:@selector(animationDidStopHidingBackView:finished:context:)];
-            [UIView commitAnimations];
+            [self _resetFrontView];
 		}
 		else
 		{
@@ -213,31 +183,104 @@
 
 - (void)resetViews:(BOOL)animated {
 	
+    frontView.frame = CGRectOffset(frontView.bounds, 0, 0);
 	frontViewMoving = NO;
-	
-    [frontView setTransform:CGAffineTransformIdentity];
-	
-	[backView.layer setHidden:YES];
-	[backView.layer setOpacity:1.0];
+	startingXPositionAtSwipe = 0;
+	backView.hidden = YES;
     
     if ([delegate respondsToSelector:@selector(backViewDidDisappear:)])
         [delegate backViewDidDisappear:animated];
 }
 
-// Note that the animation is done
-- (void)animationDidStopAddingBackView:(NSString *)animationID finished:(NSNumber *)finished context:(void *)context
-{
-    if ([delegate respondsToSelector:@selector(backViewDidAppear:)])
-        [delegate backViewDidAppear:YES];
-    
-    frontViewMoving = NO;
+#pragma mark - Gesture recognizer delegate
+
+-(BOOL)gestureRecognizerShouldBegin:(UIPanGestureRecognizer *)gestureRecognizer {
+    // We only want to deal with the gesture of it's a pan gesture
+    if ([gestureRecognizer isKindOfClass:[UIPanGestureRecognizer class]] && [self.delegate shouldSwipe]) {
+        CGPoint vel = [gestureRecognizer velocityInView:gestureRecognizer.view];
+        BOOL rightToLeftSwipe = vel.x < 0;
+        if (rightToLeftSwipe && !backView.hidden)
+            return NO;
+        if (!rightToLeftSwipe && backView.hidden)
+            return NO;
+        
+        UIPanGestureRecognizer *panGestureRecognizer = (UIPanGestureRecognizer *)gestureRecognizer;
+        CGPoint translation = [panGestureRecognizer translationInView:[self superview]];
+        return (fabs(translation.x) / fabs(translation.y) > 1) ? YES : NO;
+    } else {
+        return NO;
+    }
 }
 
-- (void)animationDidStopHidingBackView:(NSString *)animationID finished:(NSNumber *)finished context:(void *)context
+- (void)_handleFrontViewPan:(UIPanGestureRecognizer *)panGestureRecognizer
 {
-    [self resetViews:YES];
+    CGPoint velocity = [panGestureRecognizer velocityInView:panGestureRecognizer.view];
+    CGPoint actualTranslation = [panGestureRecognizer translationInView:panGestureRecognizer.view.superview];
+    if (panGestureRecognizer.state == UIGestureRecognizerStateBegan) {
+        [self _prepareToRevealBackView:YES];
+        [self animateContentViewForPoint:actualTranslation velocity:velocity];
+    } else if (panGestureRecognizer.state == UIGestureRecognizerStateChanged) {
+        [self animateContentViewForPoint:actualTranslation velocity:velocity];
+	} else if (panGestureRecognizer.state == UIGestureRecognizerStateEnded) {
+        CGFloat deltaX =  actualTranslation.x;
+        if (deltaX < -(CGRectGetWidth(self.bounds))*0.4) {
+            [self _completeFrontViewPan];
+        } else {
+            [self _resetFrontView];
+        }
+	} else if (panGestureRecognizer.state == UIGestureRecognizerStateCancelled) {
+        [self _resetFrontView];
+    }
+}
+
+- (void)_prepareToRevealBackView:(BOOL)animated
+{
+    frontViewMoving = YES;
+    backView.hidden = NO;
+    startingXPositionAtSwipe = CGRectGetMinX(frontView.frame);
+    [backView setNeedsDisplay];
     
-    frontViewMoving = NO;
+    if ([delegate respondsToSelector:@selector(backViewWillAppear:)])
+        [delegate backViewWillAppear:animated];
+}
+
+#pragma mark - Gesture animations
+
+-(void)animateContentViewForPoint:(CGPoint)point velocity:(CGPoint)velocity
+{
+    frontView.frame = CGRectOffset(frontView.bounds, point.x+startingXPositionAtSwipe, 0);
+}
+
+- (void)_completeFrontViewPan
+{
+    [UIView animateWithDuration:0.2f
+                          delay:0
+                        options:UIViewAnimationOptionCurveLinear
+                     animations:^{
+                         frontView.frame = CGRectOffset(frontView.bounds, -CGRectGetWidth(frontView.bounds)*FRONTVIEW_HIDDEN_PORTION_ON_COMPLETION, 0);
+                     }
+                     completion:^(BOOL finished) {
+                         if ([delegate respondsToSelector:@selector(backViewDidAppear:)])
+                             [delegate backViewDidAppear:YES];
+                         
+                         frontViewMoving = NO;
+                         startingXPositionAtSwipe = 0;
+                     }
+     ];
+}
+
+-(void)_resetFrontView
+{
+    [UIView animateWithDuration:0.2f
+                          delay:0
+                        options:UIViewAnimationOptionCurveLinear
+                     animations:^{
+                         frontView.frame = CGRectOffset(frontView.bounds, 0, 0);
+                     }
+                     completion:^(BOOL finished) {
+                         [self resetViews:YES];
+                     }
+     ];
 }
 
 #pragma mark - Other

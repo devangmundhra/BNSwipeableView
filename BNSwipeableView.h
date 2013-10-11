@@ -54,19 +54,16 @@
 	
 	UIView * frontView;
 	UIView * backView;
-	
-	BOOL contentViewMoving;
-	BOOL shouldBounce;
 }
 
 @property (nonatomic, strong) UIView * backView;
 @property (nonatomic, strong) UIView * frontView;
 @property (nonatomic, assign) BOOL frontViewMoving;
-@property (nonatomic, assign) BOOL shouldBounce;
 @property (nonatomic, strong) id<BNSwipeableViewDelegate> delegate;
 
-- (void)revealBackViewAnimated:(BOOL)animated inDirection:(UISwipeGestureRecognizerDirection)direction;
-- (void)hideBackViewAnimated:(BOOL)animated inDirection:(UISwipeGestureRecognizerDirection)direction;
+- (void) toggleBackViewDisplay:(BOOL)animated;
+- (void)revealBackViewAnimated:(BOOL)animated;
+- (void)hideBackViewAnimated:(BOOL)animated;
 
 - (void)prepareForReuse;
 
