@@ -255,7 +255,7 @@
 {
     [UIView animateWithDuration:0.2f
                           delay:0
-                        options:UIViewAnimationOptionCurveLinear
+                        options:UIViewAnimationOptionCurveEaseOut
                      animations:^{
                          frontView.frame = CGRectOffset(frontView.bounds, -CGRectGetWidth(frontView.bounds)*FRONTVIEW_HIDDEN_PORTION_ON_COMPLETION, 0);
                      }
@@ -273,7 +273,7 @@
 {
     [UIView animateWithDuration:0.2f
                           delay:0
-                        options:UIViewAnimationOptionCurveLinear
+                        options:UIViewAnimationOptionCurveEaseOut
                      animations:^{
                          frontView.frame = CGRectOffset(frontView.bounds, 0, 0);
                      }
