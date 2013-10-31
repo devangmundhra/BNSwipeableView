@@ -100,6 +100,11 @@
 	[backView setHidden:YES];
 	[backView setBackgroundColor:[UIColor redColor]];
 	
+    UISwipeGestureRecognizer * backSwipeRecognizer = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(_handleBackViewSwipe:)];
+    // The direction of backview swipe depends on how it was revealed
+	[backSwipeRecognizer setDirection:UISwipeGestureRecognizerDirectionRight];
+	[backView addGestureRecognizer:backSwipeRecognizer];
+    
 	[self addSubview:backView];
 	[self addSubview:frontView];
     
@@ -242,6 +247,11 @@
     
     if ([delegate respondsToSelector:@selector(backViewWillAppear:)])
         [delegate backViewWillAppear:animated];
+}
+
+- (void)_handleBackViewSwipe:(UISwipeGestureRecognizer *)swipeGestureRecognizer
+{
+    [self hideBackViewAnimated:YES];
 }
 
 #pragma mark - Gesture animations
