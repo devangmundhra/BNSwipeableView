@@ -59,7 +59,7 @@
 @property (nonatomic, strong) UIView * backView;
 @property (nonatomic, strong) UIView * frontView;
 @property (nonatomic, assign) BOOL frontViewMoving;
-@property (nonatomic, strong) id<BNSwipeableViewDelegate> delegate;
+@property (nonatomic, weak) id<BNSwipeableViewDelegate> delegate;
 
 - (void) toggleBackViewDisplay:(BOOL)animated;
 - (void)revealBackViewAnimated:(BOOL)animated;
